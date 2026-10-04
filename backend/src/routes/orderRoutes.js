@@ -1,3 +1,4 @@
+const authenticateToken = require("../middleware/authMiddleware");
 const express = require("express");
 
 const router = express.Router();
@@ -8,10 +9,10 @@ const {
     updateOrderStatus
 } = require("../controllers/orderController");
 
-router.get("/", getOrders);
+router.get("/", authenticateToken, getOrders);
 
-router.post("/", createOrder);
+router.post("/", authenticateToken, createOrder);
 
-router.patch("/:id/status", updateOrderStatus);
+router.patch("/:id/status", authenticateToken, updateOrderStatus);
 
 module.exports = router;
