@@ -2,9 +2,9 @@ const pool = require("../config/db");
 
 const getOrders = async (req, res) => {
     try {
-        const [rows] = await pool.query(
-            "SELECT orders.id, users.name AS user_name, warehouses.name AS warehouse_name, orders.product_name, orders.quantity, orders.destination, orders.status, orders.created_at FROM orders JOIN users ON orders.user_id = users.id JOIN warehouses ON orders.warehouse_id = warehouses.id"
-        );
+      const [rows] = await pool.query(
+    "SELECT orders.id, users.name AS user_name, warehouses.name AS warehouse_name, orders.product_name, orders.quantity, orders.destination, orders.status, orders.created_at FROM orders JOIN users ON orders.user_id = users.id LEFT JOIN warehouses ON orders.warehouse_id = warehouses.id"
+);
 
         res.json(rows);
     } catch (error) {
@@ -42,8 +42,22 @@ const createOrder = async (req, res) => {
         await connection.beginTransaction();
 
         const [inventoryRows] = await connection.query(
-            "SELECT inventory.warehouse_id, inventory.quantity FROM inventory WHERE inventory.product_name = ? AND inventory.quantity >= ? ORDER BY inventory.quantity DESC LIMIT 1",
-            [product_name, quantity]
+            `SELECT
+                inventory.warehouse_id,
+                inventory.quantity
+             FROM inventory
+             JOIN warehouses
+                ON inventory.warehouse_id = warehouses.id
+             WHERE inventory.product_name = ?
+             AND inventory.quantity >= ?
+             ORDER BY
+                CASE
+                    WHEN warehouses.location = ? THEN 0
+                    ELSE 1
+                END,
+                inventory.quantity DESC
+             LIMIT 1`,
+            [product_name, quantity, destination]
         );
 
         if (inventoryRows.length === 0) {

@@ -88,6 +88,7 @@ const getInventoryByProduct = async (req, res) => {
 const selectWarehouse = async (req, res) => {
     try {
         const { product_name, quantity } = req.params;
+        const { destination } = req.query;
 
         if (!quantity || quantity <= 0) {
             return res.status(400).json({
@@ -107,8 +108,13 @@ const selectWarehouse = async (req, res) => {
                 ON inventory.warehouse_id = warehouses.id
             WHERE inventory.product_name = ?
             AND inventory.quantity >= ?
-            ORDER BY inventory.quantity DESC
-        `, [product_name, quantity]);
+            ORDER BY
+                CASE
+                    WHEN warehouses.location = ? THEN 0
+                    ELSE 1
+                END,
+                inventory.quantity DESC
+        `, [product_name, quantity, destination || ""]);
 
         if (rows.length === 0) {
             return res.status(404).json({
