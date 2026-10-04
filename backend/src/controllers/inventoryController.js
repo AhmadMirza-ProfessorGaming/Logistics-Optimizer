@@ -85,8 +85,53 @@ const getInventoryByProduct = async (req, res) => {
     }
 };
 
+const selectWarehouse = async (req, res) => {
+    try {
+        const { product_name, quantity } = req.params;
+
+        if (!quantity || quantity <= 0) {
+            return res.status(400).json({
+                message: "Quantity must be greater than 0"
+            });
+        }
+
+        const [rows] = await pool.query(`
+            SELECT
+                inventory.warehouse_id,
+                warehouses.name AS warehouse_name,
+                warehouses.location,
+                inventory.product_name,
+                inventory.quantity
+            FROM inventory
+            JOIN warehouses
+                ON inventory.warehouse_id = warehouses.id
+            WHERE inventory.product_name = ?
+            AND inventory.quantity >= ?
+            ORDER BY inventory.quantity DESC
+        `, [product_name, quantity]);
+
+        if (rows.length === 0) {
+            return res.status(404).json({
+                message: "No warehouse has enough inventory"
+            });
+        }
+
+        res.json({
+            message: "Warehouse selected successfully",
+            warehouse: rows[0]
+        });
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            message: "Failed to select warehouse"
+        });
+    }
+};
+
 module.exports = {
     getInventory,
     getInventoryByWarehouse,
-    getInventoryByProduct
+    getInventoryByProduct,
+    selectWarehouse
 };
