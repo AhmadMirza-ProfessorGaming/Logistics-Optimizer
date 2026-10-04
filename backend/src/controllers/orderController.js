@@ -65,8 +65,42 @@ const createOrder = async (req, res) => {
         });
     }
 };
+const updateOrderStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        if (!status) {
+            return res.status(400).json({
+                message: "Status is required"
+            });
+        }
+
+        const [result] = await pool.query(
+            "UPDATE orders SET status = ? WHERE id = ?",
+            [status, id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                message: "Order not found"
+            });
+        }
+
+        res.json({
+            message: "Order status updated successfully"
+        });
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            message: "Failed to update order status"
+        });
+    }
+};
 
 module.exports = {
     getOrders,
-       createOrder
+    createOrder,
+    updateOrderStatus
 };
