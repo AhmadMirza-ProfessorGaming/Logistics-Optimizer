@@ -34,6 +34,17 @@ const createOrder = async (req, res) => {
             quantity,
             destination
         } = req.body;
+                if (!user_id || !product_name || !quantity || !destination) {
+            return res.status(400).json({
+                message: "All order fields are required"
+            });
+        }
+
+        if (quantity <= 0) {
+            return res.status(400).json({
+                message: "Quantity must be greater than 0"
+            });
+        }
 
         const [result] = await pool.query(
             `INSERT INTO orders
