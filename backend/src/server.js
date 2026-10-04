@@ -7,7 +7,7 @@ const pool = require("./config/db");
 const warehouseRoutes = require("./routes/warehouseRoutes");
 const inventoryRoutes = require("./routes/inventoryRoutes");
 const orderRoutes = require("./routes/orderRoutes");
-
+const authRoutes = require("./routes/authRoutes");
 const app = express();
 
 app.use(cors());
@@ -15,6 +15,7 @@ app.use(express.json());
 app.use("/api/warehouses", warehouseRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/auth", authRoutes);
 app.get("/", (req, res) => {
     res.json({ message: "Logistics Optimizer API is running" });
 });
