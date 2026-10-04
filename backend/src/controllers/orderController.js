@@ -26,6 +26,36 @@ const getOrders = async (req, res) => {
     }
 };
 
+const createOrder = async (req, res) => {
+    try {
+        const {
+            user_id,
+            product_name,
+            quantity,
+            destination
+        } = req.body;
+
+        const [result] = await pool.query(
+            `INSERT INTO orders
+            (user_id, product_name, quantity, destination)
+            VALUES (?, ?, ?, ?)`,
+            [user_id, product_name, quantity, destination]
+        );
+
+        res.status(201).json({
+            message: "Order created successfully",
+            order_id: result.insertId
+        });
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            message: "Failed to create order"
+        });
+    }
+};
+
 module.exports = {
-    getOrders
+    getOrders,
+       createOrder
 };
