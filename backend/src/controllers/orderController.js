@@ -3,7 +3,7 @@ const pool = require("../config/db");
 const getOrders = async (req, res) => {
     try {
         const [rows] = await pool.query(
-            "SELECT orders.id, users.name AS user_name, orders.product_name, orders.quantity, orders.destination, orders.status, orders.created_at FROM orders JOIN users ON orders.user_id = users.id"
+            "SELECT orders.id, users.name AS user_name, warehouses.name AS warehouse_name, orders.product_name, orders.quantity, orders.destination, orders.status, orders.created_at FROM orders JOIN users ON orders.user_id = users.id JOIN warehouses ON orders.warehouse_id = warehouses.id"
         );
 
         res.json(rows);
@@ -22,12 +22,13 @@ const createOrder = async (req, res) => {
     try {
         const {
             user_id,
+            warehouse_id,
             product_name,
             quantity,
             destination
         } = req.body;
 
-        if (!user_id || !product_name || !quantity || !destination) {
+        if (!user_id || !warehouse_id || !product_name || !quantity || !destination) {
             return res.status(400).json({
                 message: "All order fields are required"
             });
@@ -42,15 +43,15 @@ const createOrder = async (req, res) => {
         await connection.beginTransaction();
 
         const [inventoryRows] = await connection.query(
-            "SELECT quantity FROM inventory WHERE product_name = ? LIMIT 1",
-            [product_name]
+            "SELECT quantity FROM inventory WHERE product_name = ? AND warehouse_id = ?",
+            [product_name, warehouse_id]
         );
 
         if (inventoryRows.length === 0) {
             await connection.rollback();
 
             return res.status(404).json({
-                message: "Product not found in inventory"
+                message: "Product not found in this warehouse"
             });
         }
 
@@ -63,13 +64,13 @@ const createOrder = async (req, res) => {
         }
 
         const [result] = await connection.query(
-            "INSERT INTO orders (user_id, product_name, quantity, destination) VALUES (?, ?, ?, ?)",
-            [user_id, product_name, quantity, destination]
+            "INSERT INTO orders (user_id, warehouse_id, product_name, quantity, destination) VALUES (?, ?, ?, ?, ?)",
+            [user_id, warehouse_id, product_name, quantity, destination]
         );
 
         await connection.query(
-            "UPDATE inventory SET quantity = quantity - ? WHERE product_name = ?",
-            [quantity, product_name]
+            "UPDATE inventory SET quantity = quantity - ? WHERE product_name = ? AND warehouse_id = ?",
+            [quantity, product_name, warehouse_id]
         );
 
         await connection.commit();
