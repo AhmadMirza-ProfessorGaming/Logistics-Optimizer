@@ -40,18 +40,38 @@ const createOrder = async (req, res) => {
             });
         }
 
-        if (quantity <= 0) {
-            return res.status(400).json({
-                message: "Quantity must be greater than 0"
-            });
-        }
+       if (quantity <= 0) {
+    return res.status(400).json({
+        message: "Quantity must be greater than 0"
+    });
+}
 
-        const [result] = await pool.query(
-            `INSERT INTO orders
-            (user_id, product_name, quantity, destination)
-            VALUES (?, ?, ?, ?)`,
-            [user_id, product_name, quantity, destination]
-        );
+const [inventoryRows] = await pool.query(
+    `SELECT quantity
+     FROM inventory
+     WHERE product_name = ?
+     LIMIT 1`,
+    [product_name]
+);
+
+if (inventoryRows.length === 0) {
+    return res.status(404).json({
+        message: "Product not found in inventory"
+    });
+}
+
+if (inventoryRows[0].quantity < quantity) {
+    return res.status(400).json({
+        message: "Not enough inventory"
+    });
+}
+
+const [result] = await pool.query(
+    `INSERT INTO orders
+    (user_id, product_name, quantity, destination)
+    VALUES (?, ?, ?, ?)`,
+    [user_id, product_name, quantity, destination]
+);
 
         res.status(201).json({
             message: "Order created successfully",
