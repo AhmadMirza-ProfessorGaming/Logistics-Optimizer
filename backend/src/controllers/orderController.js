@@ -22,13 +22,12 @@ const createOrder = async (req, res) => {
     try {
         const {
             user_id,
-            warehouse_id,
             product_name,
             quantity,
             destination
         } = req.body;
 
-        if (!user_id || !warehouse_id || !product_name || !quantity || !destination) {
+        if (!user_id || !product_name || !quantity || !destination) {
             return res.status(400).json({
                 message: "All order fields are required"
             });
@@ -43,25 +42,19 @@ const createOrder = async (req, res) => {
         await connection.beginTransaction();
 
         const [inventoryRows] = await connection.query(
-            "SELECT quantity FROM inventory WHERE product_name = ? AND warehouse_id = ?",
-            [product_name, warehouse_id]
+            "SELECT inventory.warehouse_id, inventory.quantity FROM inventory WHERE inventory.product_name = ? AND inventory.quantity >= ? ORDER BY inventory.quantity DESC LIMIT 1",
+            [product_name, quantity]
         );
 
         if (inventoryRows.length === 0) {
             await connection.rollback();
 
             return res.status(404).json({
-                message: "Product not found in this warehouse"
+                message: "No warehouse has enough inventory"
             });
         }
 
-        if (inventoryRows[0].quantity < quantity) {
-            await connection.rollback();
-
-            return res.status(400).json({
-                message: "Not enough inventory"
-            });
-        }
+        const warehouse_id = inventoryRows[0].warehouse_id;
 
         const [result] = await connection.query(
             "INSERT INTO orders (user_id, warehouse_id, product_name, quantity, destination) VALUES (?, ?, ?, ?, ?)",
@@ -77,7 +70,8 @@ const createOrder = async (req, res) => {
 
         res.status(201).json({
             message: "Order created successfully",
-            order_id: result.insertId
+            order_id: result.insertId,
+            warehouse_id: warehouse_id
         });
     } catch (error) {
         await connection.rollback();
